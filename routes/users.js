@@ -9,7 +9,7 @@ router.get('/', function (req, res, next) {
 
 router.post('/selectAll', function (req, res, next) {
   var page = req.body.page;
-  db.selectAll('user', page, (err, result) => {
+  db.selectAll('user', page, (err, result, allCount, allPage) => {
     if (err) {
       res.status(200).json({
         "status": false,
@@ -20,6 +20,9 @@ router.post('/selectAll', function (req, res, next) {
     res.status(200).json({
       "status": true,
       "msg": "OK",
+      "allCount": allCount,
+      "allPage": allPage,
+      "page": req.body.page,
       "data": result
     });
   });
@@ -120,6 +123,28 @@ router.post('/delete',function(req,res,next){
       "data": "success"
     });
   });
+});
+
+router.post('/test', function(req,res,next){
+  var page = req.body.page;
+  var sql = 'select * from uclass left join user on uclass.userid=user.id'
+  db.joinTable('uclass',sql,page,(err, result, allCount, allPage)=>{
+    if (err) {
+      res.status(200).json({
+        "status": false,
+        "msg": err,
+        "data": []
+      });
+    }
+    res.status(200).json({
+      "status": true,
+      "msg": "OK",
+      "allCount": allCount,
+      "allPage": allPage,
+      "page": req.body.page,
+      "data": result
+  });
+  })
 });
 
 module.exports = router;

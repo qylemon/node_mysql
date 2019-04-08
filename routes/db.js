@@ -3,16 +3,28 @@ const connection = conn();
 // 分页查询所有数据
 let selectAll = (table, page, callback) => {
     var page = (page - 1) * 5;
-    connection.query("select * from " + table + " limit " + page + ",5", (err, result) => {
+    var sql = 'SELECT COUNT(*) FROM '+table+';SELECT * FROM ' + table + ' limit ' + page + ',5';
+    console.log(sql);
+    connection.query( sql, (err, result, allCount, allPage) => {
         if (err) {
             console.log('err:' + err.sqlMessage);
             let errNews = err.sqlMessage;
-            callback(errNews, '');
+            callback(errNews, '','','');
             return;
         }
-        var string = JSON.stringify(result);
+        // 计算总页数
+        var allCount = result[0][0]['COUNT(*)'];
+        var allPage = parseInt(allCount)/5;
+        var pageStr = allPage.toString();
+        // 不能被整除
+        if (pageStr.indexOf('.')>0) {
+            allPage = parseInt(pageStr.split('.')[0]) + 1; 
+        }
+        var string = JSON.stringify(result[1]);
+        console.log(result[0]);
+        console.log("=======count"+allCount+"allPage"+allPage+"pageStr"+pageStr);
         var data = JSON.parse(string);
-        callback('', data);
+        callback('', data, allCount, allPage);
     })
 }
 
@@ -51,6 +63,34 @@ let findOne = (table, where, callback) => {
         var string = JSON.stringify(result);
         var data = JSON.parse(string);
         callback('', data);
+    });
+}
+
+//多表分页查询(sql+连接条件+where自写) table为主表
+let joinTable = (table, sql, page, callback) => {
+    var page = (page - 1) * 5;
+    var sql = "SELECT COUNT(*) FROM "+table+";"+sql+" limit "+ page + ",5";
+    console.log(sql);
+    connection.query(sql, (err, result, allCount, allPage) => {
+        if (err) {
+            console.log('err:' + err.sqlMessage);
+            let errNews = err.sqlMessage;
+            callback(errNews, '');
+            return;
+        }
+        // 计算总页数
+        var allCount = result[0][0]['COUNT(*)'];
+        var allPage = parseInt(allCount)/5;
+        var pageStr = allPage.toString();
+        // 不能被整除
+        if (pageStr.indexOf('.')>0) {
+            allPage = parseInt(pageStr.split('.')[0]) + 1; 
+        }
+        var string = JSON.stringify(result[1]);
+        console.log(result[0]);
+        console.log("=======count"+allCount+"allPage"+allPage+"pageStr"+pageStr);
+        var data = JSON.parse(string);
+        callback('', data, allCount, allPage);
     });
 }
 
@@ -108,3 +148,4 @@ exports.updateData = updateData;
 exports.deleteData = deleteData;
 exports.findById = findById;
 exports.findOne = findOne;
+exports.joinTable = joinTable;
