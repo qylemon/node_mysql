@@ -4,7 +4,7 @@ const connection = conn();
 let selectAll = (table, page, callback) => {
     var page = (page - 1) * 5;
     var sql = 'SELECT COUNT(*) FROM '+table+';SELECT * FROM ' + table + ' limit ' + page + ',5';
-    console.log(sql);
+    console.log("sql============================="+sql);
     connection.query( sql, (err, result, allCount, allPage) => {
         if (err) {
             console.log('err:' + err.sqlMessage);
@@ -30,7 +30,7 @@ let selectAll = (table, page, callback) => {
 
 // 根据ID查找
 let findById = (table, id, callback) => {
-    connection.query("select * from " + table + " where id = " + id, (err, result) => {
+    connection.query("SELECT * FROM " + table + " where id = " + id, (err, result) => {
         if (err) {
             console.log('err:' + err.sqlMessage);
             let errNews = err.sqlMessage;
@@ -43,26 +43,38 @@ let findById = (table, id, callback) => {
     })
 }
 
-// 多条件查询
-let findOne = (table, where, callback) => {
+// search 搜索功能
+let search = (table, page, where, callback) => {
     var _WHERE = '';
+    var page = (page - 1) * 5;
     for (var k in where) {
         //where xx='xx' and xxx='xxx' and...
-        _WHERE += k + "='" + where[k] + "' and ";
+        if(where[k] != null){
+            _WHERE += k + "='" + where[k] + "' and ";
+        }
     }
-    _WHERE = _WHERE.substr(0,_WHERE.length-4);  //去除多余的 and 
-    var sql = "SELECT * FROM " + table + ' WHERE ' + _WHERE;
+    _WHERE = _WHERE.substr(0, _WHERE.length - 4);  //去除多余的 and 
+    var a = "SELECT * FROM " + table + ' WHERE ' + _WHERE+ ' limit ' + page + ',5';
+    var sql = "SELECT COUNT(*) FROM " + table + ' WHERE ' + _WHERE+";"+a;
     console.log(sql);
-    connection.query(sql, (err, result) => {
+    connection.query(sql, (err, result, allCount, allPage) => {
         if (err) {
             console.log('err:' + err.sqlMessage);
             let errNews = err.sqlMessage;
             callback(errNews, '');
             return;
         }
-        var string = JSON.stringify(result);
+        // 计算总页数
+        var allCount = result[0][0]['COUNT(*)'];    //行数
+        var allPage = parseInt(allCount)/5;             //页数
+        var pageStr = allPage.toString();
+        // 不能被整除 向上取整
+        if (pageStr.indexOf('.')>0) {
+            allPage = parseInt(pageStr.split('.')[0]) + 1; 
+        }
+        var string = JSON.stringify(result[1]);
         var data = JSON.parse(string);
-        callback('', data);
+        callback('', data, allCount, allPage);
     });
 }
 
@@ -142,6 +154,29 @@ let deleteData = function (table, where, callback) {
     connection.query(sql, callback);
 }
 
+// login(登录使用) 其他使用需要where条件内条件值不能为空
+let findOne = (table, where, callback) => {
+    var _WHERE = '';
+    for (var k in where) {
+        //where xx='xx' and xxx='xxx' and...
+        _WHERE += k + "='" + where[k] + "' and ";
+    }
+    _WHERE = _WHERE.substr(0, _WHERE.length - 4);  //去除多余的 and 
+    var sql = "SELECT * FROM " + table + ' WHERE ' + _WHERE;
+    console.log(sql);
+    connection.query(sql, (err, result) => {
+        if (err) {
+            console.log('err:' + err.sqlMessage);
+            let errNews = err.sqlMessage;
+            callback(errNews, '');
+            return;
+        }
+        var string = JSON.stringify(result);
+        var data = JSON.parse(string);
+        callback('', data);
+    });
+}
+
 exports.selectAll = selectAll;
 exports.insertData = insertData;
 exports.updateData = updateData;
@@ -149,3 +184,4 @@ exports.deleteData = deleteData;
 exports.findById = findById;
 exports.findOne = findOne;
 exports.joinTable = joinTable;
+exports.search = search;
